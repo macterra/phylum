@@ -1,0 +1,152 @@
+:root {
+  color-scheme: dark;
+  --ink: #e8f4ff;
+  --muted: #8aa0b8;
+  --glass: rgba(6, 10, 18, 0.55);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #02040a;
+  color: var(--ink);
+  font-family: "Segoe UI", "Sora", "Avenir Next", sans-serif;
+}
+
+#stage {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud {
+  position: fixed;
+  top: 18px;
+  left: 20px;
+  right: 280px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#pane-root {
+  position: fixed;
+  top: 18px;
+  right: 20px;
+  z-index: 3;
+  pointer-events: auto;
+}
+
+#pane-root .tp-dfwv {
+  position: static;
+}
+
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--glass);
+  border: 1px solid rgba(140, 190, 255, 0.12);
+  padding: 10px 14px;
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+}
+
+.mark {
+  color: #7ee0ff;
+  font-size: 22px;
+  text-shadow: 0 0 18px #4ec8ff;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 650;
+}
+
+.brand p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stats {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+
+.stats div {
+  min-width: 64px;
+  background: var(--glass);
+  border: 1px solid rgba(140, 190, 255, 0.12);
+  border-radius: 12px;
+  padding: 8px 10px;
+  backdrop-filter: blur(10px);
+}
+
+.stats dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.stats dd {
+  margin: 2px 0 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+}
+
+.inspect {
+  position: fixed;
+  left: 20px;
+  bottom: 48px;
+  width: 240px;
+  background: var(--glass);
+  border: 1px solid rgba(140, 190, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
+  backdrop-filter: blur(10px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.inspect h2 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.inspect p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+.hint {
+  position: fixed;
+  left: 20px;
+  bottom: 16px;
+  margin: 0;
+  color: #6d8198;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  z-index: 2;
+  pointer-events: none;
+}

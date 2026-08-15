@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phylum — evolving light</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <header class="hud">
+      <div class="brand">
+        <span class="mark">◈</span>
+        <div>
+          <h1>Phylum</h1>
+          <p>cinematic 2D evolving creatures</p>
+        </div>
+      </div>
+      <dl class="stats" id="stats">
+        <div><dt>gen</dt><dd id="stat-gen">0</dd></div>
+        <div><dt>alive</dt><dd id="stat-alive">0</dd></div>
+        <div><dt>best</dt><dd id="stat-best">0</dd></div>
+        <div><dt>food</dt><dd id="stat-food">0</dd></div>
+      </dl>
+    </header>
+    <div id="pane-root"></div>
+    <aside class="inspect" id="inspect" hidden>
+      <h2 id="inspect-title">creature</h2>
+      <p id="inspect-body"></p>
+    </aside>
+    <p class="hint">scroll zoom · esc / 0 / click empty to pull back · space pause · F follow fittest · R new tank</p>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
