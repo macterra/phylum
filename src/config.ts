@@ -11,7 +11,7 @@ export const DEFAULTS = {
   population: 56,
   foodCount: 110,
   mutationRate: 0.18,
-  generationSeconds: 36,
+  generationSeconds: 80,
   bloomStrength: 0.95,
   bloomThreshold: 0.12,
   trailFade: 0.86,

@@ -84,8 +84,7 @@ export class Tank {
     this.timeInGen += clamped;
     this.refillFood(false);
 
-    const alive = this.aliveCount();
-    if (this.timeInGen >= this.params.generationSeconds || alive <= Math.max(4, this.params.population * 0.22)) {
+    if (this.timeInGen >= this.params.generationSeconds) {
       nextGeneration(this);
     }
   }
@@ -150,13 +149,13 @@ export class Tank {
       const y = this.rng.range(-WORLD_H * 0.46, WORLD_H * 0.46);
       const n = this.noise(x * 0.08, y * 0.08);
       if (scatter || n > 0.05 || this.rng.chance(0.25)) {
-        return { x, y, energy: 7.5, alive: true, pulse: this.rng.range(0, Math.PI * 2), source: "plant" };
+        return { x, y, energy: 12, alive: true, pulse: this.rng.range(0, Math.PI * 2), source: "plant" };
       }
     }
     return {
       x: this.rng.range(-WORLD_W * 0.4, WORLD_W * 0.4),
       y: this.rng.range(-WORLD_H * 0.4, WORLD_H * 0.4),
-      energy: 7.5,
+      energy: 12,
       alive: true,
       pulse: this.rng.range(0, Math.PI * 2),
       source: "plant",

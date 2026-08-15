@@ -35,8 +35,8 @@ export class Creature {
     this.pulse = Math.random() * Math.PI * 2;
     this.colorHex = chroma.hsl(this.hue * 360, 0.72, 0.58).hex();
     const storage = genome.nodes.filter((n) => n.kind === "storage").length;
-    this.maxEnergy = 16 + storage * 7;
-    this.energy = this.maxEnergy * 0.72;
+    this.maxEnergy = 36 + storage * 12;
+    this.energy = this.maxEnergy * (0.34 + Math.random() * 0.12);
 
     for (const node of genome.nodes) {
       const desc = R.RigidBodyDesc.dynamic()
@@ -163,7 +163,7 @@ export class Creature {
       const p = this.bodies[i]!.translation();
       for (const food of foods) {
         if (!food.alive) continue;
-        if (Math.hypot(food.x - p.x, food.y - p.y) < node.radius + 0.28) {
+        if (Math.hypot(food.x - p.x, food.y - p.y) < node.radius + 0.42) {
           food.alive = false;
           this.energy = Math.min(this.maxEnergy, this.energy + food.energy);
           this.foodEaten += 1;
@@ -171,7 +171,7 @@ export class Creature {
       }
     }
 
-    this.energy -= dt * (0.55 + work * 0.045 + this.genome.nodes.length * 0.04);
+    this.energy -= dt * (0.2 + work * 0.018 + this.genome.nodes.length * 0.022);
     if (this.energy <= 0) this.alive = false;
     else this.keepInTank();
   }
