@@ -2,6 +2,8 @@
 
 A cinematic 2D artificial-life tank in the browser. Creatures are soft-body graphs — glowing organs, ligaments, sensors, mouths, thrusters — with tiny brains that mutate each generation.
 
+**Live:** [macterra.github.io/phylum](https://macterra.github.io/phylum/)
+
 ## Stack
 
 - **Three.js WebGPU + TSL** — ortho 2D, bloom, field shader
