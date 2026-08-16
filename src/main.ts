@@ -101,7 +101,7 @@ function paintHud(tank: Tank): void {
     `born     gen ${sel.genome.born}`,
     `lineage  ${sel.hue.toFixed(3)}`,
     `organs   ${sel.genome.nodes.length}  ${kinds}`,
-    `sensors  ${sel.genome.brain.sensorIds.length}  hidden ${sel.hidden.map((h) => h.toFixed(1)).join(" ")}`,
+    `sensors  ${sel.genome.brain.sensorIds.length}  hidden ${sel.hidden.map((h) => h.toFixed(1).padStart(5)).join(" ")}`,
     `energy   ${sel.energy.toFixed(1)} / ${sel.maxEnergy.toFixed(0)}`,
     `mouth    ${sel.mouthRadius().toFixed(2)}  gape ${(sel.mouthRadius() * GAPE_MIN).toFixed(2)}–${(sel.mouthRadius() * GAPE_MAX).toFixed(2)}`,
     `mass     ${sel.mass().toFixed(2)}`,

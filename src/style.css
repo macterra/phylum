@@ -114,7 +114,7 @@ body {
   position: fixed;
   left: 20px;
   bottom: 48px;
-  width: 240px;
+  width: 400px;
   background: var(--glass);
   border: 1px solid rgba(140, 190, 255, 0.12);
   border-radius: 14px;
@@ -136,7 +136,9 @@ body {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
-  white-space: pre-line;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+  font-family: "Cascadia Mono", "Segoe UI Mono", "Consolas", monospace;
 }
 
 .hint {
