@@ -31,7 +31,8 @@ export const CATABOLIZE_BELOW = 0.28;
 
 export const HIDDEN = 6;
 export const GLOBAL_INPUTS = 5;
-export const SENSOR_FEATURES = 6;
+export const SENSOR_FEATURES = 9;
+export const BITE_COOLDOWN = 0.28;
 export const SENSE_RANGE = 16;
 
 export const NODE_KINDS = ["body", "sensor", "mouth", "thruster", "storage"] as const;

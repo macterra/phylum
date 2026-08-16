@@ -148,10 +148,14 @@ export function syncBrain(g: Genome, rng: Rng): void {
     }
     for (let s = 0; s < sensorIds.length; s++) {
       const oldS = old.sensorIds.indexOf(sensorIds[s]!);
+      const oldFeat =
+        hasOld && old.sensorIds.length > 0
+          ? Math.max(1, Math.round((inOld - GLOBAL_INPUTS) / old.sensorIds.length))
+          : SENSOR_FEATURES;
       for (let f = 0; f < SENSOR_FEATURES; f++) {
         const dest = h * inNew + GLOBAL_INPUTS + s * SENSOR_FEATURES + f;
-        if (hasOld && oldS >= 0) {
-          wih[dest] = old.wih[h * inOld + GLOBAL_INPUTS + oldS * SENSOR_FEATURES + f] ?? 0;
+        if (hasOld && oldS >= 0 && f < oldFeat) {
+          wih[dest] = old.wih[h * inOld + GLOBAL_INPUTS + oldS * oldFeat + f] ?? 0;
         } else {
           wih[dest] = randW(rng, 0.45);
         }

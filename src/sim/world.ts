@@ -81,7 +81,7 @@ export class Tank {
   step(dt: number): void {
     const clamped = Math.min(dt, 0.05);
     for (const c of this.creatures) {
-      if (c.alive) c.step(this.foods, clamped);
+      if (c.alive) c.step(this.foods, this.creatures, clamped);
     }
 
     for (const c of this.creatures) {

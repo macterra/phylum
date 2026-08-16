@@ -105,7 +105,7 @@ function paintHud(tank: Tank): void {
     `energy   ${sel.energy.toFixed(1)} / ${sel.maxEnergy.toFixed(0)}`,
     `mouth    ${sel.mouthRadius().toFixed(2)}  gape ${(sel.mouthRadius() * GAPE_MIN).toFixed(2)}–${(sel.mouthRadius() * GAPE_MAX).toFixed(2)}`,
     `mass     ${sel.mass().toFixed(2)}`,
-    `eaten    ${sel.foodEaten}`,
+    `eaten    ${sel.foodEaten}  bites ${sel.bites}`,
     `age      ${sel.age.toFixed(1)}s`,
     `score    ${sel.score().toFixed(1)}`,
   ].join("\n");

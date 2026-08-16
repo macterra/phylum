@@ -2,6 +2,7 @@ import type RAPIER from "@dimforge/rapier2d-compat";
 import chroma from "chroma-js";
 import {
   AREA_PER_ENERGY,
+  BITE_COOLDOWN,
   CATABOLIZE_BELOW,
   GAPE_MAX,
   GAPE_MIN,
@@ -38,6 +39,8 @@ export class Creature {
   energy: number;
   age = 0;
   foodEaten = 0;
+  bites = 0;
+  biteCool = 0;
   alive = true;
   hue: number;
   pulse: number;
@@ -109,7 +112,7 @@ export class Creature {
   }
 
   score(): number {
-    return this.foodEaten * 14 + this.age * 0.35 + Math.max(0, this.energy);
+    return this.foodEaten * 14 + this.bites * 18 + this.age * 0.35 + Math.max(0, this.energy);
   }
 
   destroy(physics: RAPIER.World): void {
@@ -120,9 +123,10 @@ export class Creature {
     this.alive = false;
   }
 
-  step(foods: Food[], dt: number): void {
+  step(foods: Food[], others: Creature[], dt: number): void {
     if (!this.alive) return;
     this.age += dt;
+    this.biteCool = Math.max(0, this.biteCool - dt);
     this.pulse += dt * (1.6 + (1 - this.energy / this.maxEnergy));
 
     const com = this.centroid();
@@ -144,7 +148,7 @@ export class Creature {
       Math.cos(this.pulse * 0.7),
     ];
     for (const sid of this.genome.brain.sensorIds) {
-      inputs.push(...this.senseAt(sid, foods, com));
+      inputs.push(...this.senseAt(sid, foods, others, com));
     }
 
     const thought = think(this.genome.brain, inputs, this.hidden);
@@ -206,6 +210,7 @@ export class Creature {
         this.energy = Math.min(this.maxEnergy, this.energy + food.energy * (1 - GROW_FROM_MEAL));
         this.foodEaten += 1;
       }
+      this.tryBite(i, others);
     }
 
     const mass = this.mass();
@@ -238,7 +243,12 @@ export class Creature {
     return bits;
   }
 
-  private senseAt(sensorId: number, foods: Food[], com: { x: number; y: number }): number[] {
+  private senseAt(
+    sensorId: number,
+    foods: Food[],
+    others: Creature[],
+    com: { x: number; y: number },
+  ): number[] {
     const idx = this.genome.nodes.findIndex((n) => n.id === sensorId);
     const blank = new Array<number>(SENSOR_FEATURES).fill(0);
     if (idx < 0) return blank;
@@ -250,25 +260,74 @@ export class Creature {
     const cs = Math.cos(-facing);
     const sn = Math.sin(-facing);
 
+    const pick = (dx: number, dy: number) => {
+      const dist = Math.hypot(dx, dy);
+      if (dist > SENSE_RANGE || dist < 1e-4) return null;
+      const localX = dx * cs - dy * sn;
+      if (localX < -0.12) return null;
+      const localY = dx * sn + dy * cs;
+      return {
+        fx: clamp(localX / SENSE_RANGE, -1, 1),
+        fy: clamp(localY / SENSE_RANGE, -1, 1),
+        near: 1 - dist / SENSE_RANGE,
+        d: dist,
+      };
+    };
+
     let plant = { fx: 0, fy: 0, near: 0, d: SENSE_RANGE };
     let carrion = { fx: 0, fy: 0, near: 0, d: SENSE_RANGE };
+    let other = { fx: 0, fy: 0, near: 0, d: SENSE_RANGE };
     for (const food of foods) {
       if (!food.alive) continue;
-      const dx = food.x - p.x;
-      const dy = food.y - p.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist > SENSE_RANGE || dist < 1e-4) continue;
-      const localX = dx * cs - dy * sn;
-      if (localX < -0.12) continue;
-      const localY = dx * sn + dy * cs;
-      const hit = { fx: clamp(localX / SENSE_RANGE, -1, 1), fy: clamp(localY / SENSE_RANGE, -1, 1), near: 1 - dist / SENSE_RANGE, d: dist };
+      const hit = pick(food.x - p.x, food.y - p.y);
+      if (!hit) continue;
       if (food.source === "carrion") {
-        if (dist < carrion.d) carrion = hit;
-      } else if (dist < plant.d) {
+        if (hit.d < carrion.d) carrion = hit;
+      } else if (hit.d < plant.d) {
         plant = hit;
       }
     }
-    return [plant.fx, plant.fy, plant.near, carrion.fx, carrion.fy, carrion.near];
+    for (const creature of others) {
+      if (!creature.alive || creature === this) continue;
+      for (const organ of creature.bodies) {
+        const q = organ.translation();
+        const hit = pick(q.x - p.x, q.y - p.y);
+        if (hit && hit.d < other.d) other = hit;
+      }
+    }
+    return [plant.fx, plant.fy, plant.near, carrion.fx, carrion.fy, carrion.near, other.fx, other.fy, other.near];
+  }
+
+  private tryBite(mouthIndex: number, others: Creature[]): void {
+    if (this.biteCool > 0) return;
+    const mouth = this.radii[mouthIndex] ?? 0;
+    const p = this.bodies[mouthIndex]!.translation();
+    for (const other of others) {
+      if (!other.alive || other === this) continue;
+      for (let j = 0; j < other.bodies.length; j++) {
+        const r = other.radii[j] ?? 0;
+        if (r >= mouth * 0.92) continue;
+        const q = other.bodies[j]!.translation();
+        if (Math.hypot(q.x - p.x, q.y - p.y) > mouth + r * 0.4) continue;
+        const take = 5.5 + mouth * 10;
+        other.wound(j, take);
+        this.energy = Math.min(this.maxEnergy, this.energy + take * 0.55);
+        this.growFromMeal(mouthIndex, take * 0.35);
+        this.bites += 1;
+        this.biteCool = BITE_COOLDOWN;
+        return;
+      }
+    }
+  }
+
+  wound(organIndex: number, take: number): void {
+    this.energy -= take;
+    const r = this.radii[organIndex] ?? 0;
+    const minR = this.minRadius(organIndex);
+    const area = r * r;
+    const takeArea = Math.min(Math.max(0, area - minR * minR), take * AREA_PER_ENERGY * 0.85);
+    this.setRadius(organIndex, Math.sqrt(Math.max(minR * minR, area - takeArea)));
+    if (this.energy <= 0) this.alive = false;
   }
 
   private mouthCanEat(mouth: number, food: Food): boolean {
