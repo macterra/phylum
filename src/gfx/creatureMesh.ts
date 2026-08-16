@@ -91,7 +91,8 @@ export class LifeLayer {
         const p = body.translation();
         const kindBoost = node.kind === "mouth" ? 1.15 : node.kind === "thruster" ? 1.08 : 1;
         const pulse = 0.82 + 0.22 * Math.sin(creature.pulse + i) * energy;
-        const size = node.radius * 2.8 * kindBoost * pulse * (selected ? 1.08 : 1);
+        const liveR = creature.radii[i] ?? node.radius;
+        const size = liveR * 2.8 * kindBoost * pulse * (selected ? 1.08 : 1);
         dummy.position.set(p.x, p.y, 0.1);
         dummy.scale.set(size, size, 1);
         dummy.rotation.set(0, 0, 0);
@@ -141,8 +142,7 @@ export class LifeLayer {
     for (const food of tank.foods) {
       if (!food.alive) continue;
       food.pulse += 0.04;
-      const carrion = food.source === "carrion";
-      const s = (carrion ? 0.55 : 0.42) + 0.08 * Math.sin(food.pulse);
+      const s = food.size * 2.6 + 0.06 * Math.sin(food.pulse);
       dummy.position.set(food.x, food.y, 0);
       dummy.rotation.set(0, 0, 0);
       dummy.scale.set(s, s, 1);

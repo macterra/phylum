@@ -1,7 +1,9 @@
-import { BRAIN_INPUTS, MAX_NODES, NODE_KINDS, type NodeKind } from "../config";
+import { GLOBAL_INPUTS, HIDDEN, MAX_NODES, NODE_KINDS, SENSOR_FEATURES, type NodeKind } from "../config";
+import { inputSize } from "./brain";
 import { Rng, uid } from "./rng";
 
 export interface GeneNode {
+  id: number;
   kind: NodeKind;
   radius: number;
   ox: number;
@@ -18,22 +20,28 @@ export interface GeneEdge {
   damping: number;
 }
 
+export interface BrainGene {
+  wih: number[];
+  whh: number[];
+  who: number[];
+  bh: number[];
+  bo: number[];
+  sensorIds: number[];
+  thrusterIds: number[];
+}
+
 export interface Genome {
   id: string;
   lineage: number;
   born: number;
+  nextId: number;
   nodes: GeneNode[];
   edges: GeneEdge[];
-  weights: number[];
-  biases: number[];
+  brain: BrainGene;
 }
 
 export function thrusterCount(g: Genome): number {
   return g.nodes.reduce((n, node) => n + (node.kind === "thruster" ? 1 : 0), 0);
-}
-
-export function outputCount(g: Genome): number {
-  return 1 + thrusterCount(g);
 }
 
 export function randomGenome(rng: Rng, generation: number): Genome {
@@ -43,6 +51,7 @@ export function randomGenome(rng: Rng, generation: number): Genome {
     const ang = (i / n) * Math.PI * 2 + rng.range(-0.3, 0.3);
     const rad = rng.range(0.35, 1.15);
     nodes.push({
+      id: i,
       kind: "body",
       radius: rng.range(0.18, 0.42),
       ox: Math.cos(ang) * rad,
@@ -61,17 +70,16 @@ export function randomGenome(rng: Rng, generation: number): Genome {
     if (rng.chance(0.5)) nodes[i]!.kind = rng.pick(NODE_KINDS);
   }
 
-  const edges = connectGraph(nodes, rng);
   const g: Genome = {
     id: uid(),
     lineage: rng.next(),
     born: generation,
+    nextId: n,
     nodes,
-    edges,
-    weights: [],
-    biases: [],
+    edges: connectGraph(nodes, rng),
+    brain: emptyBrain(),
   };
-  randomizeBrain(g, rng);
+  syncBrain(g, rng);
   return g;
 }
 
@@ -113,10 +121,74 @@ function connectGraph(nodes: GeneNode[], rng: Rng): GeneEdge[] {
   return edges;
 }
 
-export function randomizeBrain(g: Genome, rng: Rng): void {
-  const outs = outputCount(g);
-  g.weights = Array.from({ length: outs * BRAIN_INPUTS }, () => rng.range(-1.2, 1.2));
-  g.biases = Array.from({ length: outs }, () => rng.range(-0.3, 0.3));
+function emptyBrain(): BrainGene {
+  return { wih: [], whh: [], who: [], bh: [], bo: [], sensorIds: [], thrusterIds: [] };
+}
+
+export function syncBrain(g: Genome, rng: Rng): void {
+  const sensorIds = g.nodes
+    .filter((n) => n.kind === "sensor")
+    .map((n) => n.id)
+    .sort((a, b) => a - b);
+  const thrusterIds = g.nodes
+    .filter((n) => n.kind === "thruster")
+    .map((n) => n.id)
+    .sort((a, b) => a - b);
+
+  const old = g.brain;
+  const inNew = inputSize(sensorIds.length);
+  const outNew = 1 + thrusterIds.length;
+  const inOld = inputSize(old.sensorIds.length);
+  const hasOld = old.wih.length > 0;
+
+  const wih = new Array<number>(HIDDEN * inNew);
+  for (let h = 0; h < HIDDEN; h++) {
+    for (let i = 0; i < GLOBAL_INPUTS; i++) {
+      wih[h * inNew + i] = hasOld ? (old.wih[h * inOld + i] ?? randW(rng, 0.8)) : randW(rng, 1.1);
+    }
+    for (let s = 0; s < sensorIds.length; s++) {
+      const oldS = old.sensorIds.indexOf(sensorIds[s]!);
+      for (let f = 0; f < SENSOR_FEATURES; f++) {
+        const dest = h * inNew + GLOBAL_INPUTS + s * SENSOR_FEATURES + f;
+        if (hasOld && oldS >= 0) {
+          wih[dest] = old.wih[h * inOld + GLOBAL_INPUTS + oldS * SENSOR_FEATURES + f] ?? 0;
+        } else {
+          wih[dest] = randW(rng, 0.45);
+        }
+      }
+    }
+  }
+
+  const whh = hasOld && old.whh.length === HIDDEN * HIDDEN
+    ? old.whh.slice()
+    : Array.from({ length: HIDDEN * HIDDEN }, () => randW(rng, 0.7));
+  const bh = hasOld && old.bh.length === HIDDEN ? old.bh.slice() : Array.from({ length: HIDDEN }, () => randW(rng, 0.25));
+
+  const who = new Array<number>(outNew * HIDDEN);
+  const bo = new Array<number>(outNew);
+  for (let h = 0; h < HIDDEN; h++) {
+    who[h] = hasOld ? (old.who[h] ?? randW(rng, 0.5)) : randW(rng, 0.8);
+  }
+  bo[0] = hasOld ? (old.bo[0] ?? 0) : randW(rng, 0.2);
+
+  for (let t = 0; t < thrusterIds.length; t++) {
+    const oldT = old.thrusterIds.indexOf(thrusterIds[t]!);
+    for (let h = 0; h < HIDDEN; h++) {
+      const dest = (1 + t) * HIDDEN + h;
+      if (hasOld && oldT >= 0) {
+        who[dest] = old.who[(1 + oldT) * HIDDEN + h] ?? 0;
+      } else {
+        who[dest] = randW(rng, 0.45);
+      }
+    }
+    bo[1 + t] = hasOld && oldT >= 0 ? (old.bo[1 + oldT] ?? 0) : randW(rng, 0.2);
+  }
+
+  g.brain = { wih, whh, who, bh, bo, sensorIds, thrusterIds };
+}
+
+function randW(rng: Rng, scale: number): number {
+  return rng.range(-scale, scale);
 }
 
 export function cloneGenome(g: Genome): Genome {
@@ -124,10 +196,18 @@ export function cloneGenome(g: Genome): Genome {
     id: uid(),
     lineage: g.lineage,
     born: g.born,
+    nextId: g.nextId,
     nodes: g.nodes.map((n) => ({ ...n })),
     edges: g.edges.map((e) => ({ ...e })),
-    weights: g.weights.slice(),
-    biases: g.biases.slice(),
+    brain: {
+      wih: g.brain.wih.slice(),
+      whh: g.brain.whh.slice(),
+      who: g.brain.who.slice(),
+      bh: g.brain.bh.slice(),
+      bo: g.brain.bo.slice(),
+      sensorIds: g.brain.sensorIds.slice(),
+      thrusterIds: g.brain.thrusterIds.slice(),
+    },
   };
 }
 
@@ -150,27 +230,28 @@ export function mutateGenome(g: Genome, rng: Rng, rate: number): Genome {
   }
 
   ensureRoles(child);
+  syncBrain(child, rng);
+  mutateBrainWeights(child, rng, rate);
+  return child;
+}
 
-  for (const edge of child.edges) {
+function mutateBrainWeights(g: Genome, rng: Rng, rate: number): void {
+  const twitch = (xs: number[], p: number, step: number, lim: number) => {
+    for (let i = 0; i < xs.length; i++) {
+      if (rng.chance(p)) xs[i] = clamp((xs[i] ?? 0) + rng.range(-step, step), -lim, lim);
+    }
+  };
+  twitch(g.brain.wih, rate * 1.2, 0.28, 2.4);
+  twitch(g.brain.whh, rate * 0.9, 0.22, 2.2);
+  twitch(g.brain.who, rate * 1.2, 0.28, 2.4);
+  twitch(g.brain.bh, rate, 0.12, 1.2);
+  twitch(g.brain.bo, rate, 0.12, 1.2);
+
+  for (const edge of g.edges) {
     if (rng.chance(rate)) edge.rest = clamp(edge.rest + rng.range(-0.12, 0.12), 0.22, 2.4);
     if (rng.chance(rate)) edge.stiffness = clamp(edge.stiffness + rng.range(-3, 3), 4, 28);
     if (rng.chance(rate)) edge.damping = clamp(edge.damping + rng.range(-0.3, 0.3), 0.2, 2.4);
   }
-
-  const prevOut = child.biases.length;
-  const nextOut = outputCount(child);
-  if (prevOut !== nextOut) {
-    randomizeBrain(child, rng);
-  } else {
-    for (let i = 0; i < child.weights.length; i++) {
-      if (rng.chance(rate * 1.4)) child.weights[i] = clamp(child.weights[i]! + rng.range(-0.35, 0.35), -2.4, 2.4);
-    }
-    for (let i = 0; i < child.biases.length; i++) {
-      if (rng.chance(rate)) child.biases[i] = clamp(child.biases[i]! + rng.range(-0.15, 0.15), -1, 1);
-    }
-  }
-
-  return child;
 }
 
 function addNode(g: Genome, rng: Rng): void {
@@ -178,6 +259,7 @@ function addNode(g: Genome, rng: Rng): void {
   const ang = rng.range(0, Math.PI * 2);
   const d = rng.range(0.35, 0.9);
   g.nodes.push({
+    id: g.nextId++,
     kind: rng.pick(["body", "thruster", "sensor", "storage"]),
     radius: rng.range(0.16, 0.34),
     ox: g.nodes[parent]!.ox + Math.cos(ang) * d,

@@ -27,8 +27,8 @@ Then open the URL Vite prints (usually http://localhost:5173).
 - `Space` pause
 - `F` follow the current fittest
 - `R` new random tank
-- `N` force the next generation
+- `N` optional full reset from current elites
 
 ## What you are watching
 
-Each organism is a genome: node kinds, rest lengths, and a small feed-forward brain. Mouths eat the green motes. Thrusters fire from neural output. When the clock runs out — or the tank thins — the top 20% seed the next generation.
+Each organism is a genome: node kinds, rest lengths, and a recurrent brain (6 hidden units). Sensor organs look in their facing hemisphere and report the nearest plant and nearest carrion in local coordinates — they are not a global GPS. Adding or losing a thruster or sensor keeps the old weights and only randomizes the new slot. Meals become biomass; a mouth only swallows food in its gape window. There is no generation clock: when someone starves, a child of a living high-scorer is born nearby.

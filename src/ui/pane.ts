@@ -17,7 +17,6 @@ export function bindPane(tank: Tank, onRestart: () => void): { refresh: () => vo
   evo.addBinding(tank.params, "mutationRate", { min: 0.02, max: 0.55, step: 0.01 });
   evo.addBinding(tank.params, "population", { min: 12, max: 80, step: 1 });
   evo.addBinding(tank.params, "foodCount", { min: 20, max: 180, step: 1 });
-  evo.addBinding(tank.params, "generationSeconds", { min: 10, max: 90, step: 1 });
 
   const look = pane.addFolder({ title: "look" });
   look.addBinding(tank.params, "bloomStrength", { min: 0, max: 2.2, step: 0.05 });

@@ -42,7 +42,6 @@ export class Viz {
       population: 0,
       foodCount: 0,
       mutationRate: 0,
-      generationSeconds: 0,
       bloomStrength: 0.95,
       bloomThreshold: 0.12,
       trailFade: 0.86,

@@ -1,4 +1,5 @@
 import RAPIER from "@dimforge/rapier2d-compat";
+import { GAPE_MAX, GAPE_MIN } from "./config";
 import { Viz } from "./gfx/renderer";
 import { nextGeneration } from "./sim/evolve";
 import { Tank } from "./sim/world";
@@ -100,7 +101,10 @@ function paintHud(tank: Tank): void {
     `born     gen ${sel.genome.born}`,
     `lineage  ${sel.hue.toFixed(3)}`,
     `organs   ${sel.genome.nodes.length}  ${kinds}`,
+    `sensors  ${sel.genome.brain.sensorIds.length}  hidden ${sel.hidden.map((h) => h.toFixed(1)).join(" ")}`,
     `energy   ${sel.energy.toFixed(1)} / ${sel.maxEnergy.toFixed(0)}`,
+    `mouth    ${sel.mouthRadius().toFixed(2)}  gape ${(sel.mouthRadius() * GAPE_MIN).toFixed(2)}–${(sel.mouthRadius() * GAPE_MAX).toFixed(2)}`,
+    `mass     ${sel.mass().toFixed(2)}`,
     `eaten    ${sel.foodEaten}`,
     `age      ${sel.age.toFixed(1)}s`,
     `score    ${sel.score().toFixed(1)}`,

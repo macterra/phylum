@@ -1,8 +1,8 @@
 import type RAPIER from "@dimforge/rapier2d-compat";
 import { createNoise2D } from "simplex-noise";
-import { DEFAULTS, MAX_FOOD, WORLD_H, WORLD_W, type FollowMode } from "../config";
+import { DEFAULTS, MAX_FOOD, PLANT_SIZE, WORLD_H, WORLD_W, type FollowMode } from "../config";
 import { Creature, type Food } from "./creature";
-import { nextGeneration } from "./evolve";
+import { replaceOne } from "./evolve";
 import { randomGenome, type Genome } from "./genome";
 import { Rng } from "./rng";
 
@@ -10,7 +10,6 @@ export interface SimParams {
   population: number;
   foodCount: number;
   mutationRate: number;
-  generationSeconds: number;
   bloomStrength: number;
   bloomThreshold: number;
   trailFade: number;
@@ -28,7 +27,7 @@ export class Tank {
   readonly foods: Food[] = [];
   readonly rng: Rng;
   generation = 1;
-  timeInGen = 0;
+  births = 0;
   selectedId: string | null = null;
   bestScore = 0;
   private readonly noise: (x: number, y: number) => number;
@@ -47,7 +46,7 @@ export class Tank {
   reseed(): void {
     this.clearCreatures();
     this.generation = 1;
-    this.timeInGen = 0;
+    this.births = 0;
     this.bestScore = 0;
     this.selectedId = null;
     this.foods.length = 0;
@@ -57,12 +56,26 @@ export class Tank {
     this.refillFood(true);
   }
 
-  spawn(genome: Genome): Creature {
-    const x = this.rng.range(-WORLD_W * 0.38, WORLD_W * 0.38);
-    const y = this.rng.range(-WORLD_H * 0.38, WORLD_H * 0.38);
-    const c = new Creature(this.R, this.physics, genome, x, y);
+  spawn(genome: Genome, x?: number, y?: number): Creature {
+    const px = x ?? this.rng.range(-WORLD_W * 0.38, WORLD_W * 0.38);
+    const py = y ?? this.rng.range(-WORLD_H * 0.38, WORLD_H * 0.38);
+    const c = new Creature(
+      this.R,
+      this.physics,
+      genome,
+      clamp(px, -WORLD_W * 0.42, WORLD_W * 0.42),
+      clamp(py, -WORLD_H * 0.42, WORLD_H * 0.42),
+    );
     this.creatures.push(c);
     return c;
+  }
+
+  noteBirth(): void {
+    this.births += 1;
+    if (this.births >= this.params.population) {
+      this.births = 0;
+      this.generation += 1;
+    }
   }
 
   step(dt: number): void {
@@ -78,14 +91,14 @@ export class Tank {
       }
       if (c.alive) this.bestScore = Math.max(this.bestScore, c.score());
     }
+    this.creatures.splice(0, this.creatures.length, ...this.creatures.filter((c) => c.alive));
     this.trimFood();
 
     this.physics.step();
-    this.timeInGen += clamped;
     this.refillFood(false);
 
-    if (this.timeInGen >= this.params.generationSeconds) {
-      nextGeneration(this);
+    while (this.creatures.length < this.params.population) {
+      replaceOne(this);
     }
   }
 
@@ -149,12 +162,21 @@ export class Tank {
       const y = this.rng.range(-WORLD_H * 0.46, WORLD_H * 0.46);
       const n = this.noise(x * 0.08, y * 0.08);
       if (scatter || n > 0.05 || this.rng.chance(0.25)) {
-        return { x, y, energy: 12, alive: true, pulse: this.rng.range(0, Math.PI * 2), source: "plant" };
+        return {
+          x,
+          y,
+          size: PLANT_SIZE,
+          energy: 12,
+          alive: true,
+          pulse: this.rng.range(0, Math.PI * 2),
+          source: "plant",
+        };
       }
     }
     return {
       x: this.rng.range(-WORLD_W * 0.4, WORLD_W * 0.4),
       y: this.rng.range(-WORLD_H * 0.4, WORLD_H * 0.4),
+      size: PLANT_SIZE,
       energy: 12,
       alive: true,
       pulse: this.rng.range(0, Math.PI * 2),
@@ -197,4 +219,8 @@ export class Tank {
       this.physics.createCollider(this.R.ColliderDesc.cuboid(hx, hy), body);
     }
   }
+}
+
+function clamp(v: number, a: number, b: number): number {
+  return Math.max(a, Math.min(b, v));
 }
