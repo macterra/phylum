@@ -31,4 +31,4 @@ Then open the URL Vite prints (usually http://localhost:5173).
 
 ## What you are watching
 
-Each organism is a genome: node kinds, rest lengths, and a recurrent brain (6 hidden units). Sensor organs look in their facing hemisphere and report the nearest plant, carrion, and other creature. A mouth that overlaps a smaller organ bites — it steals energy and mass. Adding or losing a thruster or sensor keeps the old weights. There is no generation clock: when someone starves (or is eaten down), a child of a living high-scorer is born nearby.
+Each organism is a genome: node kinds, rest lengths, and a recurrent brain (6 hidden units). Sensor organs look in their facing hemisphere and report the nearest plant, carrion, neighbor, and biteable prey. A mouth that reaches a smaller organ bites: it knocks the victim, steals energy and mass, and sheds a scrap of carrion others can pile onto. Hits flash white. Adding or losing a thruster or sensor keeps the old weights. There is no generation clock: when someone starves (or is eaten down), a child of a living high-scorer is born nearby.

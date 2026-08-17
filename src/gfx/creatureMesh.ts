@@ -101,7 +101,8 @@ export class LifeLayer {
 
         const hue = (creature.hue + node.hueShift + 1) % 1;
         const lite = node.kind === "sensor" ? 0.72 : node.kind === "mouth" ? 0.66 : 0.56;
-        const col = chroma.hsl(hue * 360, 0.78, lite).brighten(energy * 0.4);
+        let col = chroma.hsl(hue * 360, 0.78, lite).brighten(energy * 0.4);
+        if (creature.flash > 0) col = chroma.mix(col, "#fff4c8", Math.min(1, creature.flash));
         color.set(col.hex());
         this.organs.setColorAt(organI, color);
         organI += 1;

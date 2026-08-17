@@ -41,6 +41,8 @@ export class Creature {
   foodEaten = 0;
   bites = 0;
   biteCool = 0;
+  flash = 0;
+  readonly scraps: Food[] = [];
   alive = true;
   hue: number;
   pulse: number;
@@ -127,6 +129,7 @@ export class Creature {
     if (!this.alive) return;
     this.age += dt;
     this.biteCool = Math.max(0, this.biteCool - dt);
+    this.flash = Math.max(0, this.flash - dt * 3.4);
     this.pulse += dt * (1.6 + (1 - this.energy / this.maxEnergy));
 
     const com = this.centroid();
@@ -287,15 +290,24 @@ export class Creature {
         plant = hit;
       }
     }
+    let prey = { fx: 0, fy: 0, near: 0, d: SENSE_RANGE };
+    const gape = this.mouthRadius();
     for (const creature of others) {
       if (!creature.alive || creature === this) continue;
-      for (const organ of creature.bodies) {
-        const q = organ.translation();
+      for (let j = 0; j < creature.bodies.length; j++) {
+        const q = creature.bodies[j]!.translation();
         const hit = pick(q.x - p.x, q.y - p.y);
-        if (hit && hit.d < other.d) other = hit;
+        if (!hit) continue;
+        if (hit.d < other.d) other = hit;
+        if ((creature.radii[j] ?? 0) < gape * 1.05 && hit.d < prey.d) prey = hit;
       }
     }
-    return [plant.fx, plant.fy, plant.near, carrion.fx, carrion.fy, carrion.near, other.fx, other.fy, other.near];
+    return [
+      plant.fx, plant.fy, plant.near,
+      carrion.fx, carrion.fy, carrion.near,
+      other.fx, other.fy, other.near,
+      prey.fx, prey.fy, prey.near,
+    ];
   }
 
   private tryBite(mouthIndex: number, others: Creature[]): void {
@@ -306,28 +318,48 @@ export class Creature {
       if (!other.alive || other === this) continue;
       for (let j = 0; j < other.bodies.length; j++) {
         const r = other.radii[j] ?? 0;
-        if (r >= mouth * 0.92) continue;
+        if (r >= mouth * 1.05) continue;
         const q = other.bodies[j]!.translation();
-        if (Math.hypot(q.x - p.x, q.y - p.y) > mouth + r * 0.4) continue;
-        const take = 5.5 + mouth * 10;
-        other.wound(j, take);
+        const dist = Math.hypot(q.x - p.x, q.y - p.y);
+        if (dist > mouth * 1.55 + r * 0.7) continue;
+        const take = 6 + mouth * 11;
+        const scrap = other.wound(j, take);
+        if (scrap) this.scraps.push(scrap);
         this.energy = Math.min(this.maxEnergy, this.energy + take * 0.55);
         this.growFromMeal(mouthIndex, take * 0.35);
         this.bites += 1;
         this.biteCool = BITE_COOLDOWN;
+        this.flash = Math.max(this.flash, 0.55);
+        const nx = dist > 1e-4 ? (q.x - p.x) / dist : 1;
+        const ny = dist > 1e-4 ? (q.y - p.y) / dist : 0;
+        other.bodies[j]!.applyImpulse({ x: nx * 1.15, y: ny * 1.15 }, true);
+        this.bodies[mouthIndex]!.applyImpulse({ x: -nx * 0.35, y: -ny * 0.35 }, true);
         return;
       }
     }
   }
 
-  wound(organIndex: number, take: number): void {
+  wound(organIndex: number, take: number): Food | null {
     this.energy -= take;
+    this.flash = 1;
     const r = this.radii[organIndex] ?? 0;
     const minR = this.minRadius(organIndex);
     const area = r * r;
     const takeArea = Math.min(Math.max(0, area - minR * minR), take * AREA_PER_ENERGY * 0.85);
     this.setRadius(organIndex, Math.sqrt(Math.max(minR * minR, area - takeArea)));
+    const p = this.bodies[organIndex]!.translation();
+    const scrap: Food = {
+      x: p.x + (Math.random() - 0.5) * 0.35,
+      y: p.y + (Math.random() - 0.5) * 0.35,
+      size: Math.max(0.08, r * 0.45),
+      energy: take * 0.4,
+      alive: true,
+      pulse: Math.random() * Math.PI * 2,
+      source: "carrion",
+      hex: this.colorHex,
+    };
     if (this.energy <= 0) this.alive = false;
+    return scrap;
   }
 
   private mouthCanEat(mouth: number, food: Food): boolean {

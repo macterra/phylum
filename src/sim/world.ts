@@ -83,6 +83,12 @@ export class Tank {
     for (const c of this.creatures) {
       if (c.alive) c.step(this.foods, this.creatures, clamped);
     }
+    for (const c of this.creatures) {
+      if (c.scraps.length) {
+        this.foods.push(...c.scraps);
+        c.scraps.length = 0;
+      }
+    }
 
     for (const c of this.creatures) {
       if (!c.alive && c.bodies.length) {
